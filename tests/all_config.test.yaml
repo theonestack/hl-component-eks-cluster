@@ -1,0 +1,10 @@
+test_metadata:
+  type: config
+  name: all config
+  description: testing EKS cluster will all possible config options
+
+cluster_name: ${EnvironmentName}-Cluster
+eks_version: 1.11
+
+extra_tags:
+  Cluster: ${EnvironmentName}-Cluster

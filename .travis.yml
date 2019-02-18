@@ -1,0 +1,10 @@
+language: ruby
+rvm:
+  - 2.5
+install:
+  - gem install cfhighlander cfn-nag
+before_script:
+  - cfndsl -u 2.21.0
+script:
+  - cfhighlander cftest
+  - cfn_nag_scan -i out/tests
