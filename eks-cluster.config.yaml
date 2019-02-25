@@ -1,1 +1,23 @@
 # Default configuration
+
+detailed_monitoring: false
+
+spot:
+  enabled: false
+
+iam:
+  services:
+    - ec2
+  managed_policies:
+    - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+    - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+    - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+
+eks_bootstrap: |
+  /etc/eks/bootstrap.sh ${EksCluster} ${BootstrapArguments}
+
+cfnsignal: |
+  /opt/aws/bin/cfn-signal --exit-code $? \
+           --stack  ${AWS::StackName} \
+           --resource NodeGroup  \
+           --region ${AWS::Region}

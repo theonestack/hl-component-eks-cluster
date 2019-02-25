@@ -1,0 +1,25 @@
+test_metadata:
+  type: config
+  name: basic
+  description: test with some basic configuration
+
+cluster_name: ${EnvironmentName}-Cluster
+eks_version: 1.11
+
+extra_tags:
+  Cluster: ${EnvironmentName}-Cluster
+
+userdata: |
+  echo "this is in the userdata"
+  printenv
+
+iam:
+  services:
+    - ec2
+    - ssm
+  policies:
+    ssm_get_secrets:
+      actions:
+        - ssm:GetParameters
+        - ssm:GetParametersByPath
+        - ssm:DescribeParameters

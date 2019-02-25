@@ -1,0 +1,10 @@
+test_metadata:
+  type: config
+  name: spot array
+  description: test spot instance types with deafult price using the array format
+
+spot:
+  enabled: true
+  instances:
+    - t2.small
+    - c4.large
