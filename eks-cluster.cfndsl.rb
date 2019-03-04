@@ -1,5 +1,7 @@
 CloudFormation do
 
+  Condition('KeyNameSet', FnNot(FnEquals(Ref('KeyName'), '')))
+
   tags = []
   extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } } if defined? extra_tags
 
@@ -148,7 +150,7 @@ CloudFormation do
       ],
       UserData: FnBase64(FnSub(node_userdata)),
       IamInstanceProfile: { Name: Ref(:EksNodeInstanceProfile) },
-      KeyName: Ref('KeyName'),
+      KeyName: FnIf('KeyNameSet', Ref('KeyName'), Ref('AWS::NoValue')),
       ImageId: Ref('ImageId'),
       Monitoring: { Enabled: detailed_monitoring }
   }

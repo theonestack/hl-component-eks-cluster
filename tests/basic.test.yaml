@@ -20,6 +20,4 @@ iam:
   policies:
     ssm_get_secrets:
       actions:
-        - ssm:GetParameters
-        - ssm:GetParametersByPath
-        - ssm:DescribeParameters
+        - '*'
