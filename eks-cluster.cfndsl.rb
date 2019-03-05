@@ -165,9 +165,9 @@ CloudFormation do
         spot_options = spot['instances'].map { |type| { SpotInstanceType: type }}
       end
       template_data[:InstanceMarketOptions][:SpotOptions] = spot_options
-    else
-      template_data[:InstanceType] = Ref('InstanceType')
     end
+  else
+    template_data[:InstanceType] = Ref('InstanceType')
   end
 
   EC2_LaunchTemplate(:EksNodeLaunchTemplate) {
