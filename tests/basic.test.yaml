@@ -18,6 +18,6 @@ iam:
     - ec2
     - ssm
   policies:
-    ssm_get_secrets:
-      actions:
-        - '*'
+    ssm_get_parameters:
+      action:
+        - ssm:GetParametersByPath

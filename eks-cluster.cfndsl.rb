@@ -116,7 +116,7 @@ CloudFormation do
   policies = []
   iam['policies'].each do |name,policy|
     policies << iam_policy_allow(name,policy['action'],policy['resource'] || '*')
-  end if defined? iam_policies
+  end if iam.has_key?('policies')
 
   IAM_Role(:EksNodeRole) {
     AssumeRolePolicyDocument service_role_assume_policy(iam['services'])
