@@ -2,9 +2,6 @@
 
 detailed_monitoring: false
 
-spot:
-  enabled: false
-
 iam:
   services:
     - ec2

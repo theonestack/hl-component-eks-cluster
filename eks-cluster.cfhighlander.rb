@@ -11,9 +11,9 @@ CfhighlanderTemplate do
     ComponentParam 'KeyName', type: 'AWS::EC2::KeyPair::KeyName'
     ComponentParam 'ImageId', type: 'AWS::EC2::Image::Id'
 
-    if !spot.has_key?('instances')
-      ComponentParam 'InstanceType'
-    end
+    ComponentParam 'InstanceType'
+
+    ComponentParam 'SpotPrice', ''
 
     ComponentParam 'DesiredCapacity', '1'
     ComponentParam 'MinSize', '1'
