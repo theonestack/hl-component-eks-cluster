@@ -6,5 +6,5 @@ install:
 before_script:
   - cfndsl -u 2.21.0
 script:
-  - cfhighlander cftest
+  - if [ "${TRAVIS_PULL_REQUEST}" != "false" ]; then cfhighlander cftest --no-validate; else cfhighlander cftest; fi
   - cfn_nag_scan -i out/tests

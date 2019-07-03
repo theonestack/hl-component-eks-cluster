@@ -1,6 +1,7 @@
 CloudFormation do
 
   Condition('KeyNameSet', FnNot(FnEquals(Ref('KeyName'), '')))
+  Condition("SpotEnabled", FnNot(FnEquals(Ref('SpotPrice'), '')))
 
   tags = []
   extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } } if defined? extra_tags
@@ -152,22 +153,20 @@ CloudFormation do
       IamInstanceProfile: { Name: Ref(:EksNodeInstanceProfile) },
       KeyName: FnIf('KeyNameSet', Ref('KeyName'), Ref('AWS::NoValue')),
       ImageId: Ref('ImageId'),
-      Monitoring: { Enabled: detailed_monitoring }
+      Monitoring: { Enabled: detailed_monitoring },
+      InstanceType: Ref('InstanceType')
   }
 
-  # spot details
-  if spot['enabled']
-    template_data[:InstanceMarketOptions] = { MarketType: 'spot' }
-    if spot.has_key?('instances')
-      if spot['instances'].is_a?(Hash)
-        spot_options = spot['instances'].map { |type,price| { SpotInstanceType: type, MaxPrice: price }}
-      elsif spot['instances'].is_a?(Array)
-        spot_options = spot['instances'].map { |type| { SpotInstanceType: type }}
-      end
-      template_data[:InstanceMarketOptions][:SpotOptions] = spot_options
-    end
-  else
-    template_data[:InstanceType] = Ref('InstanceType')
+  if defined? spot
+    spot_options = {
+      MarketType: 'spot',
+      SpotOptions: {
+        SpotInstanceType: (defined?(spot['type']) ? spot['type'] : 'one-time'),
+        MaxPrice: FnSub(spot['price'])
+      }
+    }
+    template_data[:InstanceMarketOptions] = FnIf('SpotEnabled', spot_options, Ref('AWS::NoValue'))
+
   end
 
   EC2_LaunchTemplate(:EksNodeLaunchTemplate) {
@@ -177,7 +176,7 @@ CloudFormation do
   AutoScaling_AutoScalingGroup(:EksNodeAutoScalingGroup) {
     UpdatePolicy(:AutoScalingRollingUpdate, {
       MaxBatchSize: '1',
-      MinInstancesInService: Ref('DesiredCapacity'),
+      MinInstancesInService: FnIf('SpotEnabled', 0, Ref('DesiredCapacity')),
       SuspendProcesses: %w(HealthCheck ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions),
       PauseTime: 'PT5M'
     })

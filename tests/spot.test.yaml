@@ -1,0 +1,8 @@
+test_metadata:
+  type: config
+  name: spot
+  description: Test spot functionality
+
+spot:
+  type: persistent
+  price: ${SpotPrice}
