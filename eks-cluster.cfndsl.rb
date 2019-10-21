@@ -190,4 +190,39 @@ CloudFormation do
     })
   }
 
+  AutoScaling_LifecycleHook(:EksContainerInstanceDrainingHook) {
+    AutoScalingGroupName Ref(:EksNodeAutoScalingGroup)
+    LifecycleTransition 'autoscaling:EC2_INSTANCE_TERMINATING'
+    HeartbeatTimeout 450
+  }
+
+
+  Events_Rule(:AutoscalingTerminationEvent) {
+    EventPattern ({
+      "source" => [ "aws.autoscaling" ],
+      "detail-type" => [ "EC2 Instance-terminate Lifecycle Action" ],
+      "detail" => {
+        "AutoScalingGroupName" => [ Ref(:EksNodeAutoScalingGroup) ]
+      }
+    })
+    Targets ([{
+        "Arn": FnGetAtt(:EksContainerInstanceDraining, 'Arn'),
+        "Id": '1'
+    }])
+  }
+
+  Output(:EksClusterSecurityGroup) {
+    Value Ref(:EksClusterSecurityGroup)
+  }
+
+  Output(:EksNodeSecurityGroup) {
+    Value Ref(:EksNodeSecurityGroup)
+  }
+
+  # Export role so we can reference within the pipeline and dynamically update k8s with helm charts
+  Output(:EksNodeDrainerRole) {
+    Value(FnGetAtt("LambdaRoledrainer", "Arn"))
+    Export FnSub("${EnvironmentName}-#{component_name}-drainer-role")
+  }
+
 end

@@ -20,4 +20,6 @@ CfhighlanderTemplate do
     ComponentParam 'MaxSize', '2'
   end
 
+  LambdaFunctions 'asg_lifecycle_drainer'
+
 end

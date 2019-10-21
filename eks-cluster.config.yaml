@@ -18,3 +18,43 @@ cfnsignal: |
            --stack  ${AWS::StackName} \
            --resource NodeGroup  \
            --region ${AWS::Region}
+
+asg_lifecycle_drainer:
+  custom_policies:
+    drainer:
+      action:
+        - autoscaling:CompleteLifecycleAction
+        - ec2:DescribeInstances
+        - eks:DescribeCluster
+        - sts:GetCallerIdentity
+      resource: '*'
+
+  roles:
+    drainer:
+      policies_inline:
+        - drainer
+      policies_managed:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  functions:
+    EksContainerInstanceDraining:
+      role: drainer
+      code: lambdas/
+      runtime: python3.6
+      named: true
+      function_name:
+        Fn::Sub: '${EnvironmentName}-eks-asg-drainer'
+      timeout: 600
+      handler: handler.lambda_handler
+      package_cmd: 'pip3 install -r requirements.txt -t .'
+      log_retention: 7
+      environment:
+        ENVIRONMENT_NAME:
+          Ref: EnvironmentName
+        ENVIRONMENT_TYPE:
+          Ref: EnvironmentType
+        CLUSTER_NAME:
+          Ref: EksCluster
+      allowed_sources:
+       -
+         principal: events.amazonaws.com
