@@ -47,7 +47,7 @@ asg_lifecycle_drainer:
       timeout: 600
       handler: handler.lambda_handler
       package_cmd: 'pip3 install -r requirements.txt -t .'
-      log_retention: 7
+      #log_retention: 7
       environment:
         ENVIRONMENT_NAME:
           Ref: EnvironmentName
