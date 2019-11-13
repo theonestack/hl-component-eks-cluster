@@ -8,7 +8,7 @@ CfhighlanderTemplate do
     ComponentParam 'VPCId', isGlobal: true, type: 'AWS::EC2::VPC::Id'
     ComponentParam 'SubnetIds'
     ComponentParam 'BootstrapArguments'
-    ComponentParam 'KeyName', type: 'AWS::EC2::KeyPair::KeyName'
+    ComponentParam 'KeyName', ''
     ComponentParam 'ImageId', type: 'AWS::EC2::Image::Id'
 
     ComponentParam 'InstanceType'
