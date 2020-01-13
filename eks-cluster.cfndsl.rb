@@ -4,7 +4,8 @@ CloudFormation do
   Condition("SpotEnabled", FnNot(FnEquals(Ref('SpotPrice'), '')))
 
   tags = []
-  extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } } if defined? extra_tags
+  extra_tags = external_parameters.fetch(:extra_tags, {})
+  extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } }
 
   IAM_Role(:EksClusterRole) {
     AssumeRolePolicyDocument service_role_assume_policy('eks')
@@ -104,17 +105,20 @@ CloudFormation do
     FromPort 443
   }
 
+  cluster_name = external_parameters.fetch(:cluster_name, '')
+  eks_version = external_parameters.fetch(:eks_version, nil)
   EKS_Cluster(:EksCluster) {
-    Name FnSub(cluster_name) if defined? cluster_name
+    Name FnSub(cluster_name) unless cluster_name.empty?
     ResourcesVpcConfig({
       SecurityGroupIds: [ Ref(:EksClusterSecurityGroup) ],
       SubnetIds: FnSplit(',', Ref('SubnetIds'))
     })
     RoleArn FnGetAtt(:EksClusterRole, :Arn)
-    Version eks_version if defined? eks_version
+    Version eks_version unless eks_version.nil?
   }
 
   policies = []
+  iam = external_parameters[:iam]
   iam['policies'].each do |name,policy|
     policies << iam_policy_allow(name,policy['action'],policy['resource'] || '*')
   end if iam.has_key?('policies')
@@ -133,9 +137,9 @@ CloudFormation do
 
   # Setup userdata string
   node_userdata = "#!/bin/bash\nset -o xtrace\n"
-  node_userdata << eks_bootstrap if defined? eks_bootstrap
-  node_userdata << userdata if defined? userdata
-  node_userdata << cfnsignal if defined? cfnsignal
+  node_userdata << external_parameters.fetch(:eks_bootstrap, '')
+  node_userdata << userdata = external_parameters.fetch(:userdata, '')
+  node_userdata << cfnsignal = external_parameters.fetch(:cfnsignal, '')
 
   launch_template_tags = [
     { Key: 'Name', Value: FnSub("${EnvironmentName}-eks-node-xx") },
@@ -157,7 +161,8 @@ CloudFormation do
       InstanceType: Ref('InstanceType')
   }
 
-  if defined? spot
+  spot = external_parameters.fetch(:spot, {})
+  unless spot.empty?
     spot_options = {
       MarketType: 'spot',
       SpotOptions: {
@@ -190,4 +195,8 @@ CloudFormation do
     })
   }
 
+
+  Output(:EksNodeSecurityGroup) {
+    Value(Ref(:EksNodeSecurityGroup))
+  }
 end
