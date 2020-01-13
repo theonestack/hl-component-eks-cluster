@@ -136,14 +136,10 @@ CloudFormation do
   end
 
   # Setup userdata string
-  eks_bootstrap = external_parameters.fetch(:eks_bootstrap, nil)
-  userdata = external_parameters.fetch(:userdata, nil)
-  cfnsignal = external_parameters.fetch(:cfnsignal, nil)
-
   node_userdata = "#!/bin/bash\nset -o xtrace\n"
-  node_userdata << eks_bootstrap unless eks_bootstrap.nil?
-  node_userdata << userdata unless userdata.nil?
-  node_userdata << cfnsignal unless cfnsignal.nil?
+  node_userdata << external_parameters.fetch(:eks_bootstrap, '')
+  node_userdata << userdata = external_parameters.fetch(:userdata, '')
+  node_userdata << cfnsignal = external_parameters.fetch(:cfnsignal, '')
 
   launch_template_tags = [
     { Key: 'Name', Value: FnSub("${EnvironmentName}-eks-node-xx") },
@@ -199,4 +195,8 @@ CloudFormation do
     })
   }
 
+
+  Output(:EksNodeSecurityGroup) {
+    Value(Ref(:EksNodeSecurityGroup))
+  }
 end
