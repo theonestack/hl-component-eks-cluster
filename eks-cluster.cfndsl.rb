@@ -199,4 +199,9 @@ CloudFormation do
   Output(:EksNodeSecurityGroup) {
     Value(Ref(:EksNodeSecurityGroup))
   }
+
+  Output(:EksClusterName) {
+    Value(Ref(:EksCluster))
+  }
+
 end
