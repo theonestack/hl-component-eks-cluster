@@ -14,7 +14,7 @@ CfhighlanderTemplate do
     ComponentParam 'InstanceType'
 
     ComponentParam 'SpotPrice', ''
-
+    ComponentParam 'EnableScaling', 'true'
     ComponentParam 'DesiredCapacity', '1'
     ComponentParam 'MinSize', '1'
     ComponentParam 'MaxSize', '2'
