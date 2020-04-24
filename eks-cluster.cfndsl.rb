@@ -183,7 +183,7 @@ CloudFormation do
     { Key: 'k8s.io/cluster-autoscaler/enabled', Value: Ref('EnableScaling') }
   ]
   asg_tags += tags
-  asg_tags.each {|tag| tag[:PropagateAtLaunch] = true }
+  asg_tags.each {|tag| tag[:PropagateAtLaunch] = false }
   AutoScaling_AutoScalingGroup(:EksNodeAutoScalingGroup) {
     UpdatePolicy(:AutoScalingRollingUpdate, {
       MaxBatchSize: '1',
