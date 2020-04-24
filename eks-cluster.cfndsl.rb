@@ -178,6 +178,12 @@ CloudFormation do
     LaunchTemplateData(template_data)
   }
 
+  asg_tags = [
+    { Key: FnSub("k8s.io/cluster/${EksCluster}"), Value: 'owned' },
+    { Key: 'k8s.io/cluster-autoscaler/enabled', Value: Ref('EnableScaling') }
+  ]
+  asg_tags += tags
+  asg_tags.each {|tag| tag[:PropagateAtLaunch] = false }
   AutoScaling_AutoScalingGroup(:EksNodeAutoScalingGroup) {
     UpdatePolicy(:AutoScalingRollingUpdate, {
       MaxBatchSize: '1',
@@ -193,6 +199,7 @@ CloudFormation do
       LaunchTemplateId: Ref(:EksNodeLaunchTemplate),
       Version: FnGetAtt(:EksNodeLaunchTemplate, :LatestVersionNumber)
     })
+    Tags asg_tags
   }
 
 
