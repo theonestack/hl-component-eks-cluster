@@ -8,7 +8,7 @@ CloudFormation do
   extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } }
 
   IAM_Role(:EksClusterRole) {
-    AssumeRolePolicyDocument service_role_assume_policy('eks')
+    AssumeRolePolicyDocument service_assume_role_policy('eks')
     Path '/'
     ManagedPolicyArns([
       'arn:aws:iam::aws:policy/AmazonEKSServicePolicy',
@@ -117,17 +117,12 @@ CloudFormation do
     Version eks_version unless eks_version.nil?
   }
 
-  policies = []
   iam = external_parameters[:iam]
-  iam['policies'].each do |name,policy|
-    policies << iam_policy_allow(name,policy['action'],policy['resource'] || '*')
-  end if iam.has_key?('policies')
-
   IAM_Role(:EksNodeRole) {
-    AssumeRolePolicyDocument service_role_assume_policy(iam['services'])
+    AssumeRolePolicyDocument service_assume_role_policy(iam['services'])
     Path '/'
-    ManagedPolicyArns(iam['managed_policies']) if iam.has_key?('managed_policies')
-    Policies(policies) if policies.any?
+    ManagedPolicyArns(iam['managed_policies'])
+    Policies(iam_role_policies(iam['policies'])) if iam.has_key?('policies')
   }
 
   IAM_InstanceProfile(:EksNodeInstanceProfile) do
@@ -177,6 +172,7 @@ CloudFormation do
   EC2_LaunchTemplate(:EksNodeLaunchTemplate) {
     LaunchTemplateData(template_data)
   }
+
 
   asg_tags = [
     { Key: FnSub("k8s.io/cluster/${EksCluster}"), Value: 'owned' },

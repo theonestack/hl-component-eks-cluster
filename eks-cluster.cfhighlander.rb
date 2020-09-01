@@ -1,5 +1,6 @@
 CfhighlanderTemplate do
   Name 'eks-cluster'
+  DependsOn 'lib-iam'
   Description "eks-cluster - #{component_version}"
 
   Parameters do
