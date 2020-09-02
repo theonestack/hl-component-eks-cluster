@@ -1,5 +1,6 @@
 CfhighlanderTemplate do
   Name 'eks-cluster'
+  DependsOn 'lib-iam'
   Description "eks-cluster - #{component_version}"
 
   Parameters do
@@ -19,5 +20,7 @@ CfhighlanderTemplate do
     ComponentParam 'MinSize', '1'
     ComponentParam 'MaxSize', '2'
   end
+
+  LambdaFunctions 'draining_lambda'
 
 end
