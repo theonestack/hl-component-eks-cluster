@@ -23,15 +23,15 @@ draining_lambda:
       role: Draining
       package_cmd: 'pip install -r requirements.txt -t .'
   event:
-    source:
-      - "aws.autoscaling"
-    detail-type:
-      - "EC2 Instance-terminate Lifecycle Action"
-    detail:
-      AutoScalingGroupName:
-        - Fn::Sub: '${EksNodeAutoScalingGroup}'
-    State: "ENABLED"
-    Targets:
+    pattern:
+      source:
+        - "aws.autoscaling"
+      detail-type:
+        - "EC2 Instance-terminate Lifecycle Action"
+      detail:
+        AutoScalingGroupName:
+          - Fn::Sub: '${EksNodeAutoScalingGroup}'
+    targets:
       -
         Arn:
           Fn::GetAtt:

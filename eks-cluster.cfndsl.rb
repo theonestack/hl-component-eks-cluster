@@ -33,7 +33,8 @@ CloudFormation do
   Events_Rule(:LifecycleEvent) {
     Description FnSub("Rule for ${EnvironmentName} eks draining lifecycle hook")
     State 'ENABLED'
-    EventPattern draining_lambda['event']
+    EventPattern draining_lambda['event']['pattern']
+    Targets draining_lambda['event']['targets']
   }
 
   EC2_SecurityGroup(:EksClusterSecurityGroup) {
