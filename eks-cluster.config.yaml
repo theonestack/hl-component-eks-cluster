@@ -14,6 +14,7 @@ draining_lambda:
     Draining:
       policies_inline:
         - DrainerPolicies
+        - cloudwatch-logs
   functions:
     Drainer:
       code: drainer
