@@ -228,7 +228,11 @@ CloudFormation do
   }
 
   Output(:DrainingLambdaRole) {
-    Value(Ref(:LambdaRoleDraining))
+    Value(FnGetAtt(:LambdaRoleDraining, :Arn))
+  }
+
+  Output(:EksNodeRole) {
+    Value(FnGetAtt(:EksNodeRole, :Arn))
   }
 
 end
