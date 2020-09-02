@@ -21,4 +21,6 @@ CfhighlanderTemplate do
     ComponentParam 'MaxSize', '2'
   end
 
+  LambdaFunctions 'draining_lambda'
+
 end

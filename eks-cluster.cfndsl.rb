@@ -16,6 +16,26 @@ CloudFormation do
     ])
   }
 
+  AutoScaling_LifecycleHook(:DrainingLifecycleHook) {
+    AutoScalingGroupName Ref('EksNodeAutoScalingGroup')
+    HeartbeatTimeout 450
+    LifecycleTransition 'autoscaling:EC2_INSTANCE_TERMINATING'
+  }
+
+  Lambda_Permission(:DrainingLambdaPermission) {
+    Action 'lambda:InvokeFunction'
+    FunctionName FnGetAtt('Drainer', 'Arn')
+    Principal 'events.amazonaws.com'
+    SourceArn FnGetAtt('LifecycleEvent', 'Arn')
+  }
+
+  draining_lambda = external_parameters[:draining_lambda]
+  Events_Rule(:LifecycleEvent) {
+    Description FnSub("Rule for ${EnvironmentName} eks draining lifecycle hook")
+    State 'Enabled'
+    EventPattern draining_lambda['event']
+  }
+
   EC2_SecurityGroup(:EksClusterSecurityGroup) {
     VpcId Ref('VPCId')
     GroupDescription "EKS Cluster communication with worker nodes"
@@ -205,6 +225,10 @@ CloudFormation do
 
   Output(:EksClusterName) {
     Value(Ref(:EksCluster))
+  }
+
+  Output(:DrainingLambdaRole) {
+    Value(Ref(:LambdaRoleDraining))
   }
 
 end

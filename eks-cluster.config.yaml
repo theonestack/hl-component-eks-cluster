@@ -2,6 +2,43 @@
 
 detailed_monitoring: false
 
+draining_lambda:
+  custom_policies:
+    DrainerPolicies:
+      action:
+        - autoscaling:CompleteLifecycleAction
+        - ec2:DescribeInstances
+        - eks:DescribeCluster
+        - sts:GetCallerIdentity
+  roles:
+    Draining:
+      policies_inline:
+        - DrainerPolicies
+  functions:
+    Drainer:
+      code: drainer
+      handler: app.lambda_handler
+      runtime: python3.7
+      timeout: 300
+      role: Draining
+      package_cmd: 'pip install -r requirements.txt -t .'
+  event:
+    source:
+      - "aws.autoscaling"
+    detail-type:
+      - "EC2 Instance-terminate Lifecycle Action"
+    detail:
+      AutoScalingGroupName:
+        - Fn::Sub: '${EksNodeAutoScalingGroup}'
+    State: "ENABLED"
+    Targets:
+      -
+        Arn:
+          Fn::GetAtt:
+            - "Drainer"
+            - "Arn"
+        Id: "EksDrainerFunction"
+
 iam:
   services:
     - ec2
