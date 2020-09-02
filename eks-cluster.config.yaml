@@ -24,7 +24,8 @@ draining_lambda:
       role: Draining
       package_cmd: 'pip install -r requirements.txt -t .'
       environment:
-        CLUSTER_NAME: !Ref EksCluster
+        CLUSTER_NAME:
+          Ref: EksCluster
   event:
     pattern:
       source:
