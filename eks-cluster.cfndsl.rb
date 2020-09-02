@@ -32,7 +32,7 @@ CloudFormation do
   draining_lambda = external_parameters[:draining_lambda]
   Events_Rule(:LifecycleEvent) {
     Description FnSub("Rule for ${EnvironmentName} eks draining lifecycle hook")
-    State 'Enabled'
+    State 'ENABLED'
     EventPattern draining_lambda['event']
   }
 
