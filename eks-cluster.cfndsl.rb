@@ -210,7 +210,7 @@ CloudFormation do
     DesiredCapacity Ref('DesiredCapacity')
     MinSize Ref('MinSize')
     MaxSize Ref('MaxSize')
-    VPCZoneIdentifier FnSplit(',', Ref('SubnetIds'))
+    VPCZoneIdentifiers FnSplit(',', Ref('SubnetIds'))
     LaunchTemplate({
       LaunchTemplateId: Ref(:EksNodeLaunchTemplate),
       Version: FnGetAtt(:EksNodeLaunchTemplate, :LatestVersionNumber)
