@@ -50,6 +50,16 @@ iam:
     - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
     - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
     - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+  policies:
+    cluster-autoscaler:
+      action:
+        - autoscaling:DescribeAutoScalingGroups
+        - autoscaling:DescribeAutoScalingInstances
+        - autoscaling:DescribeLaunchConfigurations
+        - autoscaling:DescribeTags
+        - autoscaling:SetDesiredCapacity
+        - autoscaling:TerminateInstanceInAutoScalingGroup
+        - ec2:DescribeLaunchTemplateVersions
 
 eks_bootstrap: |
   /etc/eks/bootstrap.sh ${EksCluster} ${BootstrapArguments}
