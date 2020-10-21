@@ -261,10 +261,12 @@ CloudFormation do
 
   Output(:DrainingLambdaRole) {
     Value(FnGetAtt(:LambdaRoleDraining, :Arn))
+    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-DrainingLambdaRole")
   }
 
   Output(:EksNodeRole) {
     Value(FnGetAtt(:EksNodeRole, :Arn))
+    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-EksNodeRole")
   }
 
 end
