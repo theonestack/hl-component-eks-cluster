@@ -16,6 +16,33 @@ CloudFormation do
     ])
   }
 
+
+  fargate_profiles = external_parameters.fetch(:fargate_profiles, {})
+
+  IAM_Role(:PodExecutionRoleArn) {
+    AssumeRolePolicyDocument service_assume_role_policy('eks-fargate-pods')
+    Path '/'
+    ManagedPolicyArns([
+      'arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy'
+    ])
+  } unless fargate_profiles == {}
+
+  fargate_profiles.each do |profile|
+    name = profile['name'].gsub('-','').gsub('_','').capitalize
+    unless profile.has_key?('selectors')
+      raise ArgumentError, "Selectors must be defined for fargate profiles"
+    end
+    Resource("#{name}FargateProfile") do
+      Type 'AWS::EKS::FargateProfile'
+      Property('ClusterName', Ref(:EksCluster))
+      Property('FargateProfileName', Ref("#{name}FargateProfileName"))
+      Property('PodExecutionRoleArn', Ref(:PodExecutionRoleArn))
+      Property('Subnets', Ref("#{name}FargateSubnetIds"))
+      Property('Tags', [{ Key: 'Name', Value: FnSub("${EnvironmentName}-#{name}-fargate-profile")}] + tags)
+      Property('Selectors', profile['selectors'])
+    end
+  end
+
   AutoScaling_LifecycleHook(:DrainingLifecycleHook) {
     AutoScalingGroupName Ref('EksNodeAutoScalingGroup')
     HeartbeatTimeout 450

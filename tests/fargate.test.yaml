@@ -1,0 +1,31 @@
+test_metadata:
+  type: config
+  name: basic
+  description: test for creating a fargate profile
+
+cluster_name: ${EnvironmentName}-Cluster
+eks_version: 1.18
+
+fargate_profiles:
+  -
+    name: batch
+    selectors:
+      -
+        Namespace:
+          Fn::Sub: ${EnvironmentName}
+        Labels:
+          -
+            Key: MyKey
+            Value: MyValue
+
+extra_tags:
+  Cluster: ${EnvironmentName}-Cluster
+
+iam:
+  services:
+    - ec2
+    - ssm
+  policies:
+    ssm_get_parameters:
+      action:
+        - ssm:GetParametersByPath
