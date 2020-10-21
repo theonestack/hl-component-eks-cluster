@@ -1,6 +1,6 @@
 test_metadata:
   type: config
-  name: basic
+  name: fargate
   description: test for creating a fargate profile
 
 cluster_name: ${EnvironmentName}-Cluster

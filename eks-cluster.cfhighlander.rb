@@ -23,8 +23,8 @@ CfhighlanderTemplate do
     fargate_profiles.each do |profile|
       name = profile['name'].gsub('-','').gsub('_','').capitalize
       ComponentParam "#{name}FargateProfileName", ''
-      ComponentParam "#{name}FargateSubnetIds", type: 'List<AWS::EC2::Subnet::Id>'
     end if defined? fargate_profiles
+
   end
 
   LambdaFunctions 'draining_lambda'

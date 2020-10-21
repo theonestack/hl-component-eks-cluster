@@ -32,12 +32,17 @@ CloudFormation do
     unless profile.has_key?('selectors')
       raise ArgumentError, "Selectors must be defined for fargate profiles"
     end
+    Condition("#{name}FargateProfileNameSet", FnNot(FnEquals(Ref("#{name}FargateProfileName"), '')))
     Resource("#{name}FargateProfile") do
       Type 'AWS::EKS::FargateProfile'
       Property('ClusterName', Ref(:EksCluster))
-      Property('FargateProfileName', Ref("#{name}FargateProfileName"))
+      Property('FargateProfileName',
+        FnIf("#{name}FargateProfileNameSet",
+            Ref("#{name}FargateProfileName"),
+            FnSub("${EnvironmentName}-#{name}-fargate-profile"))
+      )
       Property('PodExecutionRoleArn', Ref(:PodExecutionRoleArn))
-      Property('Subnets', Ref("#{name}FargateSubnetIds"))
+      Property('Subnets', FnSplit(',', Ref('SubnetIds')))
       Property('Tags', [{ Key: 'Name', Value: FnSub("${EnvironmentName}-#{name}-fargate-profile")}] + tags)
       Property('Selectors', profile['selectors'])
     end
