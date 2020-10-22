@@ -41,7 +41,7 @@ CloudFormation do
             Ref("#{name}FargateProfileName"),
             FnSub("${EnvironmentName}-#{name}-fargate-profile"))
       )
-      Property('PodExecutionRoleArn', Ref(:PodExecutionRoleArn))
+      Property('PodExecutionRoleArn', FnGetAtt(:PodExecutionRoleArn, :Arn))
       Property('Subnets', FnSplit(',', Ref('SubnetIds')))
       Property('Tags', [{ Key: 'Name', Value: FnSub("${EnvironmentName}-#{name}-fargate-profile")}] + tags)
       Property('Selectors', profile['selectors'])
