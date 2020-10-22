@@ -205,7 +205,7 @@ CloudFormation do
 
     # Remove options that are not allowed with node groups if we specify our own launch template
     # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-eks-nodegroup-launchtemplatespecification.html
-    [:InstanceMarketOptions, :IamInstanceProfile].each  {|k| template_data.delete(k) if template_data.has_key?(k)} if managed_node_group['launch_template']
+    [:InstanceMarketOptions, :IamInstanceProfile].each  {|k| template_data.delete(k) if template_data.has_key?(k)} if managed_node_group_use_launch_template
 
     EC2_LaunchTemplate(:EksNodeLaunchTemplate) {
       LaunchTemplateData(template_data)
@@ -225,7 +225,7 @@ CloudFormation do
       Property('LaunchTemplate', {
         Id: Ref(:EksNodeLaunchTemplate),
         Version: FnGetAtt(:EksNodeLaunchTemplate, :LatestVersionNumber)
-      }) if managed_node_group['launch_template']
+      }) if managed_node_group_use_launch_template
       Property('ForceUpdateEnabled', Ref(:ForceUpdateEnabled))
       Property('InstanceTypes', FnIf('InstancesSpecified', Ref('InstanceTypes'), Ref('AWS::NoValue'))) #Default is t3.medium
       Property('ScalingConfig', {
