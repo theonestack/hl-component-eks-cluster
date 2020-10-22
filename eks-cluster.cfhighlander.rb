@@ -25,8 +25,13 @@ CfhighlanderTemplate do
       ComponentParam "#{name}FargateProfileName", ''
     end if defined? fargate_profiles
 
-  end
+    if defined?(managed_node_group['enabled']) && managed_node_group['enabled']
+      ComponentParam 'ForceUpdateEnabled', false
+      ComponentParam 'InstanceTypes', ''
+    end
 
-  LambdaFunctions 'draining_lambda'
+  end
+  
+  LambdaFunctions 'draining_lambda' if !defined?(managed_node_group['enabled'])
 
 end

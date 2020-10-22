@@ -1,0 +1,30 @@
+test_metadata:
+  type: config
+  name: managed_node_group_with_launch_template
+  description: test for creating a fargate profile
+
+cluster_name: ${EnvironmentName}-Cluster
+eks_version: 1.18
+
+managed_node_group:
+  name: my-node-group
+  enabled: true
+  launch_template: true
+
+
+spot:
+  type: persistent
+  price: ${SpotPrice}
+
+
+extra_tags:
+  Cluster: ${EnvironmentName}-Cluster
+
+iam:
+  services:
+    - ec2
+    - ssm
+  policies:
+    ssm_get_parameters:
+      action:
+        - ssm:GetParametersByPath

@@ -1,0 +1,29 @@
+test_metadata:
+  type: config
+  name: managed_node_group
+  description: test for creating a fargate profile
+
+cluster_name: ${EnvironmentName}-Cluster
+eks_version: 1.18
+
+managed_node_group:
+  name: my-node-group
+  enabled: true
+  disk_size: 40
+  labels:
+    Key1: Value1
+    Key2:
+      Fn::Sub: Value2
+
+
+extra_tags:
+  Cluster: ${EnvironmentName}-Cluster
+
+iam:
+  services:
+    - ec2
+    - ssm
+  policies:
+    ssm_get_parameters:
+      action:
+        - ssm:GetParametersByPath

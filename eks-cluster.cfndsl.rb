@@ -16,7 +16,6 @@ CloudFormation do
     ])
   }
 
-
   fargate_profiles = external_parameters.fetch(:fargate_profiles, {})
 
   IAM_Role(:PodExecutionRoleArn) {
@@ -47,27 +46,6 @@ CloudFormation do
       Property('Selectors', profile['selectors'])
     end
   end
-
-  AutoScaling_LifecycleHook(:DrainingLifecycleHook) {
-    AutoScalingGroupName Ref('EksNodeAutoScalingGroup')
-    HeartbeatTimeout 450
-    LifecycleTransition 'autoscaling:EC2_INSTANCE_TERMINATING'
-  }
-
-  Lambda_Permission(:DrainingLambdaPermission) {
-    Action 'lambda:InvokeFunction'
-    FunctionName FnGetAtt('Drainer', 'Arn')
-    Principal 'events.amazonaws.com'
-    SourceArn FnGetAtt('LifecycleEvent', 'Arn')
-  }
-
-  draining_lambda = external_parameters[:draining_lambda]
-  Events_Rule(:LifecycleEvent) {
-    Description FnSub("Rule for ${EnvironmentName} eks draining lifecycle hook")
-    State 'ENABLED'
-    EventPattern draining_lambda['event']['pattern']
-    Targets draining_lambda['event']['targets']
-  }
 
   EC2_SecurityGroup(:EksClusterSecurityGroup) {
     VpcId Ref('VPCId')
@@ -183,85 +161,143 @@ CloudFormation do
     Roles [Ref(:EksNodeRole)]
   end
 
-  # Setup userdata string
-  node_userdata = "#!/bin/bash\nset -o xtrace\n"
-  node_userdata << external_parameters.fetch(:eks_bootstrap, '')
-  node_userdata << userdata = external_parameters.fetch(:userdata, '')
-  node_userdata << cfnsignal = external_parameters.fetch(:cfnsignal, '')
+  managed_node_group = external_parameters.fetch(:managed_node_group, {})
+  managed_node_group_use_launch_template = managed_node_group['launch_template'] ? managed_node_group['launch_template'] : false
+  if !managed_node_group['enabled'] || managed_node_group_use_launch_template
+    # Setup userdata string
+    node_userdata = "#!/bin/bash\nset -o xtrace\n"
+    node_userdata << external_parameters.fetch(:eks_bootstrap, '')
+    node_userdata << userdata = external_parameters.fetch(:userdata, '')
+    node_userdata << cfnsignal = external_parameters.fetch(:cfnsignal, '')
 
-  launch_template_tags = [
-    { Key: 'Name', Value: FnSub("${EnvironmentName}-eks-node-xx") },
-    { Key: FnSub("kubernetes.io/cluster/${EksCluster}"), Value: 'owned' }
-  ]
-  launch_template_tags += tags
-
-  template_data = {
-      SecurityGroupIds: [ Ref(:EksNodeSecurityGroup) ],
-      TagSpecifications: [
-        { ResourceType: 'instance', Tags: launch_template_tags },
-        { ResourceType: 'volume', Tags: launch_template_tags }
-      ],
-      UserData: FnBase64(FnSub(node_userdata)),
-      IamInstanceProfile: { Name: Ref(:EksNodeInstanceProfile) },
-      KeyName: FnIf('KeyNameSet', Ref('KeyName'), Ref('AWS::NoValue')),
-      ImageId: Ref('ImageId'),
-      Monitoring: { Enabled: detailed_monitoring },
-      InstanceType: Ref('InstanceType')
-  }
-
-  spot = external_parameters.fetch(:spot, {})
-  unless spot.empty?
-    spot_options = {
-      MarketType: 'spot',
-      SpotOptions: {
-        SpotInstanceType: (defined?(spot['type']) ? spot['type'] : 'one-time'),
-        MaxPrice: FnSub(spot['price'])
-      }
+    launch_template_tags = [
+      { Key: 'Name', Value: FnSub("${EnvironmentName}-eks-node-xx") },
+      { Key: FnSub("kubernetes.io/cluster/${EksCluster}"), Value: 'owned' }
+    ]
+    launch_template_tags += tags
+  
+    template_data = {
+        SecurityGroupIds: [ Ref(:EksNodeSecurityGroup) ],
+        TagSpecifications: [
+          { ResourceType: 'instance', Tags: launch_template_tags },
+          { ResourceType: 'volume', Tags: launch_template_tags }
+        ],
+        UserData: FnBase64(FnSub(node_userdata)),
+        IamInstanceProfile: { Name: Ref(:EksNodeInstanceProfile) },
+        KeyName: FnIf('KeyNameSet', Ref('KeyName'), Ref('AWS::NoValue')),
+        ImageId: Ref('ImageId'),
+        Monitoring: { Enabled: detailed_monitoring },
+        InstanceType: Ref('InstanceType')
     }
-    template_data[:InstanceMarketOptions] = FnIf('SpotEnabled', spot_options, Ref('AWS::NoValue'))
+  
+    spot = external_parameters.fetch(:spot, {})
+    unless spot.empty?
+      spot_options = {
+        MarketType: 'spot',
+        SpotOptions: {
+          SpotInstanceType: (defined?(spot['type']) ? spot['type'] : 'one-time'),
+          MaxPrice: FnSub(spot['price'])
+        }
+      }
+      template_data[:InstanceMarketOptions] = FnIf('SpotEnabled', spot_options, Ref('AWS::NoValue'))
 
+    end
+
+    # Remove options that are not allowed with node groups if we specify our own launch template
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-eks-nodegroup-launchtemplatespecification.html
+    [:InstanceMarketOptions, :IamInstanceProfile].each  {|k| template_data.delete(k) if template_data.has_key?(k)} if managed_node_group['launch_template']
+
+    EC2_LaunchTemplate(:EksNodeLaunchTemplate) {
+      LaunchTemplateData(template_data)
+    }
   end
 
-  EC2_LaunchTemplate(:EksNodeLaunchTemplate) {
-    LaunchTemplateData(template_data)
-  }
+  if managed_node_group['enabled']
+    Condition("InstancesSpecified", FnNot(FnEquals(Ref('InstanceTypes'), '')))
+    Resource(:ManagedNodeGroup) do
+      Type 'AWS::EKS::Nodegroup'
+      Property('ClusterName', Ref(:EksCluster))
+      Property('NodegroupName', FnSub(managed_node_group['name'])) if managed_node_group.has_key?('name')
+      Property('NodeRole', FnGetAtt(:EksNodeRole, :Arn))
+      Property('Subnets', FnSplit(',', Ref('SubnetIds')))
+      Property('Tags', [{ Key: 'Name', Value: FnSub("${EnvironmentName}-eks-managed-node-group")}] + tags)
+      Property('DiskSize', managed_node_group['disk_size']) if managed_node_group.has_key?('disk_size') && managed_node_group_use_launch_template
+      Property('LaunchTemplate', {
+        Id: Ref(:EksNodeLaunchTemplate),
+        Version: FnGetAtt(:EksNodeLaunchTemplate, :LatestVersionNumber)
+      }) if managed_node_group['launch_template']
+      Property('ForceUpdateEnabled', Ref(:ForceUpdateEnabled))
+      Property('InstanceTypes', FnIf('InstancesSpecified', Ref('InstanceTypes'), Ref('AWS::NoValue'))) #Default is t3.medium
+      Property('ScalingConfig', {
+        DesiredCapacity: Ref('DesiredCapacity'),
+        MinSize: Ref('MinSize'),
+        MaxSize: Ref('MaxSize')
+      })
+      Property('Labels', managed_node_group['labels']) if managed_node_group.has_key?('labels')
+    end
+  else
 
+    AutoScaling_LifecycleHook(:DrainingLifecycleHook) {
+      AutoScalingGroupName Ref('EksNodeAutoScalingGroup')
+      HeartbeatTimeout 450
+      LifecycleTransition 'autoscaling:EC2_INSTANCE_TERMINATING'
+    }
 
-  asg_tags = [
-    { Key: FnSub("k8s.io/cluster/${EksCluster}"), Value: 'owned' },
-    { Key: 'k8s.io/cluster-autoscaler/enabled', Value: Ref('EnableScaling') }
-  ]
-  asg_tags = tags.clone.map(&:clone).concat(asg_tags).uniq.each {|tag| tag[:PropagateAtLaunch] = false }
-  AutoScaling_AutoScalingGroup(:EksNodeAutoScalingGroup) {
-    UpdatePolicy(:AutoScalingRollingUpdate, {
-      MaxBatchSize: '1',
-      MinInstancesInService: FnIf('SpotEnabled', 0, Ref('DesiredCapacity')),
-      SuspendProcesses: %w(HealthCheck ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions),
-      PauseTime: 'PT5M'
-    })
-    DesiredCapacity Ref('DesiredCapacity')
-    MinSize Ref('MinSize')
-    MaxSize Ref('MaxSize')
-    VPCZoneIdentifiers FnSplit(',', Ref('SubnetIds'))
-    LaunchTemplate({
-      LaunchTemplateId: Ref(:EksNodeLaunchTemplate),
-      Version: FnGetAtt(:EksNodeLaunchTemplate, :LatestVersionNumber)
-    })
-    Tags asg_tags
-  }
+    Lambda_Permission(:DrainingLambdaPermission) {
+      Action 'lambda:InvokeFunction'
+      FunctionName FnGetAtt('Drainer', 'Arn')
+      Principal 'events.amazonaws.com'
+      SourceArn FnGetAtt('LifecycleEvent', 'Arn')
+    }
+
+    draining_lambda = external_parameters[:draining_lambda]
+    Events_Rule(:LifecycleEvent) {
+      Description FnSub("Rule for ${EnvironmentName} eks draining lifecycle hook")
+      State 'ENABLED'
+      EventPattern draining_lambda['event']['pattern']
+      Targets draining_lambda['event']['targets']
+    }
+
+    Output(:DrainingLambdaRole) {
+      Value(FnGetAtt(:LambdaRoleDraining, :Arn))
+      Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-DrainingLambdaRole")
+    }
+
+    asg_tags = [
+      { Key: FnSub("k8s.io/cluster/${EksCluster}"), Value: 'owned' },
+      { Key: 'k8s.io/cluster-autoscaler/enabled', Value: Ref('EnableScaling') }
+    ]
+    asg_tags = tags.clone.map(&:clone).concat(asg_tags).uniq.each {|tag| tag[:PropagateAtLaunch] = false }
+    AutoScaling_AutoScalingGroup(:EksNodeAutoScalingGroup) {
+      UpdatePolicy(:AutoScalingRollingUpdate, {
+        MaxBatchSize: '1',
+        MinInstancesInService: FnIf('SpotEnabled', 0, Ref('DesiredCapacity')),
+        SuspendProcesses: %w(HealthCheck ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions),
+        PauseTime: 'PT5M'
+      })
+      DesiredCapacity Ref('DesiredCapacity')
+      MinSize Ref('MinSize')
+      MaxSize Ref('MaxSize')
+      VPCZoneIdentifiers FnSplit(',', Ref('SubnetIds'))
+      LaunchTemplate({
+        LaunchTemplateId: Ref(:EksNodeLaunchTemplate),
+        Version: FnGetAtt(:EksNodeLaunchTemplate, :LatestVersionNumber)
+      })
+      Tags asg_tags
+    }
+  end
 
 
   Output(:EksNodeSecurityGroup) {
     Value(Ref(:EksNodeSecurityGroup))
   }
 
-  Output(:EksClusterName) {
-    Value(Ref(:EksCluster))
+  Output(:EksClusterSecurityGroup) {
+    Value(Ref(:EksClusterSecurityGroup))
   }
 
-  Output(:DrainingLambdaRole) {
-    Value(FnGetAtt(:LambdaRoleDraining, :Arn))
-    Export FnSub("${EnvironmentName}-#{external_parameters[:component_name]}-DrainingLambdaRole")
+  Output(:EksClusterName) {
+    Value(Ref(:EksCluster))
   }
 
   Output(:EksNodeRole) {
