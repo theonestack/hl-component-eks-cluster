@@ -16,7 +16,7 @@ CloudFormation do
     ])
   }
 
-  fargate_profiles = external_parameters.fetch(:fargate_profiles, {})
+  fargate_profiles = external_parameters.fetch(:fargate_profiles, [])
 
   IAM_Role(:PodExecutionRoleArn) {
     AssumeRolePolicyDocument service_assume_role_policy('eks-fargate-pods')
@@ -24,7 +24,7 @@ CloudFormation do
     ManagedPolicyArns([
       'arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy'
     ])
-  } unless fargate_profiles == {}
+  } unless fargate_profiles == []
 
   fargate_profiles.each do |profile|
     name = profile['name'].gsub('-','').gsub('_','').capitalize
@@ -221,7 +221,7 @@ CloudFormation do
       Property('NodeRole', FnGetAtt(:EksNodeRole, :Arn))
       Property('Subnets', FnSplit(',', Ref('SubnetIds')))
       Property('Tags', [{ Key: 'Name', Value: FnSub("${EnvironmentName}-eks-managed-node-group")}] + tags)
-      Property('DiskSize', managed_node_group['disk_size']) if managed_node_group.has_key?('disk_size') && managed_node_group_use_launch_template
+      Property('DiskSize', managed_node_group['disk_size']) if managed_node_group.has_key?('disk_size') && !managed_node_group_use_launch_template
       Property('LaunchTemplate', {
         Id: Ref(:EksNodeLaunchTemplate),
         Version: FnGetAtt(:EksNodeLaunchTemplate, :LatestVersionNumber)
