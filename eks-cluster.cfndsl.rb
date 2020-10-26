@@ -220,7 +220,7 @@ CloudFormation do
       Property('NodegroupName', FnSub(managed_node_group['name'])) if managed_node_group.has_key?('name')
       Property('NodeRole', FnGetAtt(:EksNodeRole, :Arn))
       Property('Subnets', FnSplit(',', Ref('SubnetIds')))
-      Property('Tags', [{ Key: 'Name', Value: FnSub("${EnvironmentName}-eks-managed-node-group")}] + tags)
+      # Property('Tags', { Key: 'Name', Value: FnSub("${EnvironmentName}-eks-managed-node-group")} + tags)
       Property('DiskSize', managed_node_group['disk_size']) if managed_node_group.has_key?('disk_size') && !managed_node_group_use_launch_template
       Property('LaunchTemplate', {
         Id: Ref(:EksNodeLaunchTemplate),
@@ -229,7 +229,7 @@ CloudFormation do
       Property('ForceUpdateEnabled', Ref(:ForceUpdateEnabled))
       Property('InstanceTypes', FnIf('InstancesSpecified', Ref('InstanceTypes'), Ref('AWS::NoValue'))) #Default is t3.medium
       Property('ScalingConfig', {
-        DesiredCapacity: Ref('DesiredCapacity'),
+        DesiredSize: Ref('DesiredCapacity'),
         MinSize: Ref('MinSize'),
         MaxSize: Ref('MaxSize')
       })
