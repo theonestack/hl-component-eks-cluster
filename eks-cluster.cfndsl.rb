@@ -5,7 +5,7 @@ CloudFormation do
 
   tags = []
   extra_tags = external_parameters.fetch(:extra_tags, {})
-  extra_tags.each { |key,value| tags << { Key: FnSub(key), Value: FnSub(value) } }
+  extra_tags.each { |key,value| tags << { Key: key, Value: FnSub(value) } }
 
   IAM_Role(:EksClusterRole) {
     AssumeRolePolicyDocument service_assume_role_policy('eks')
@@ -213,6 +213,7 @@ CloudFormation do
   end
 
   if managed_node_group['enabled']
+    node_group_tags = [{ Key: 'Name', Value: FnSub("${EnvironmentName}-eks-managed-node-group")}] + tags
     Condition("InstancesSpecified", FnNot(FnEquals(Ref('InstanceTypes'), '')))
     Resource(:ManagedNodeGroup) do
       Type 'AWS::EKS::Nodegroup'
@@ -220,7 +221,7 @@ CloudFormation do
       Property('NodegroupName', FnSub(managed_node_group['name'])) if managed_node_group.has_key?('name')
       Property('NodeRole', FnGetAtt(:EksNodeRole, :Arn))
       Property('Subnets', FnSplit(',', Ref('SubnetIds')))
-      Property('Tags', [{ Key: 'Name', Value: FnSub("${EnvironmentName}-eks-managed-node-group")}] + tags)
+      Property('Tags', Hash[node_group_tags.collect {|obj| [obj[:Key], obj[:Value]]}])
       Property('DiskSize', managed_node_group['disk_size']) if managed_node_group.has_key?('disk_size') && !managed_node_group_use_launch_template
       Property('LaunchTemplate', {
         Id: Ref(:EksNodeLaunchTemplate),
