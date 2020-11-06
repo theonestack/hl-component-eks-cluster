@@ -190,6 +190,20 @@ CloudFormation do
 
   end
 
+    volumes = []
+    volume_size = external_parameters.fetch(:volume_size, nil)
+
+    unless volume_size.nil?
+      volumes << {
+        DeviceName: '/dev/xvda',
+        Ebs: {
+          VolumeSize: volume_size
+        }
+      }
+      template_data[:BlockDeviceMappings] = volumes
+    end
+
+
   EC2_LaunchTemplate(:EksNodeLaunchTemplate) {
     LaunchTemplateData(template_data)
   }
