@@ -1,0 +1,6 @@
+test_metadata:
+  type: config
+  name: volume_size
+  description: Test custom volume size
+
+volume_size: 120
