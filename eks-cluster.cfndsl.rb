@@ -214,12 +214,13 @@ CloudFormation do
     { Key: 'k8s.io/cluster-autoscaler/enabled', Value: Ref('EnableScaling') }
   ]
   asg_tags = tags.clone.map(&:clone).concat(asg_tags).uniq.each {|tag| tag[:PropagateAtLaunch] = false }
+  pause_time = external_parameters.fetch(:pause_time, 'PT5M')
   AutoScaling_AutoScalingGroup(:EksNodeAutoScalingGroup) {
     UpdatePolicy(:AutoScalingRollingUpdate, {
       MaxBatchSize: '1',
       MinInstancesInService: FnIf('SpotEnabled', 0, Ref('DesiredCapacity')),
       SuspendProcesses: %w(HealthCheck ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions),
-      PauseTime: 'PT5M'
+      PauseTime: pause_time
     })
     DesiredCapacity Ref('DesiredCapacity')
     MinSize Ref('MinSize')
