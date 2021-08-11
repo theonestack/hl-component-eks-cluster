@@ -208,6 +208,18 @@ CloudFormation do
     LaunchTemplateData(template_data)
   }
 
+  resolve_addon_conflicts = external_parameters.fetch(:resolve_addon_conflicts, nil)
+  add_ons = external_parameters.fetch(:add_ons, {})
+  add_ons.each do | add_on, version |
+    safe_addon_name = add_on.dup.gsub!('-','') || add_on
+    EKS_Addon("#{safe_addon_name.capitalize}Addon") {
+      AddonName add_on
+      AddonVersion version
+      ResolveConflicts resolve_addon_conflicts unless resolve_addon_conflicts.nil?
+      ClusterName Ref(:EksCluster)
+      Tags tags
+    }
+  end unless add_ons.empty?
 
   asg_tags = [
     { Key: FnSub("k8s.io/cluster/${EksCluster}"), Value: 'owned' },
