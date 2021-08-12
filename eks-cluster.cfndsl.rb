@@ -208,6 +208,17 @@ CloudFormation do
     LaunchTemplateData(template_data)
   }
 
+  add_ons = external_parameters.fetch(:add_ons, {})
+  add_ons.each do | add_on, config |
+    safe_addon_name = add_on.dup.gsub!('-','') || add_on
+    EKS_Addon("#{safe_addon_name.capitalize}Addon") {
+      AddonName add_on
+      AddonVersion config['version']
+      ResolveConflicts config['resolve_conflicts'] if config.has_key?('resolve_conflicts')
+      ClusterName Ref(:EksCluster)
+      Tags tags
+    }
+  end unless add_ons.empty?
 
   asg_tags = [
     { Key: FnSub("k8s.io/cluster/${EksCluster}"), Value: 'owned' },
