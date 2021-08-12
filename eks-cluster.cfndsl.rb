@@ -208,14 +208,13 @@ CloudFormation do
     LaunchTemplateData(template_data)
   }
 
-  resolve_addon_conflicts = external_parameters.fetch(:resolve_addon_conflicts, nil)
   add_ons = external_parameters.fetch(:add_ons, {})
-  add_ons.each do | add_on, version |
+  add_ons.each do | add_on, config |
     safe_addon_name = add_on.dup.gsub!('-','') || add_on
     EKS_Addon("#{safe_addon_name.capitalize}Addon") {
       AddonName add_on
-      AddonVersion version
-      ResolveConflicts resolve_addon_conflicts unless resolve_addon_conflicts.nil?
+      AddonVersion config['version']
+      ResolveConflicts config['resolve_conflicts'] if config.has_key?('resolve_conflicts')
       ClusterName Ref(:EksCluster)
       Tags tags
     }

@@ -4,4 +4,6 @@ test_metadata:
   description: test with some basic configuration and an add on
 
 add_ons:
-  kube-proxy: v1.21.2-eksbuild.2
+  kube-proxy:
+    version: v1.21.2-eksbuild.2
+    resolve_conflicts: OVERWRITE
