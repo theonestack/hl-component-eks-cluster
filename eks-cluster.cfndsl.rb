@@ -226,9 +226,10 @@ CloudFormation do
   ]
   asg_tags = tags.clone.map(&:clone).concat(asg_tags).uniq.each {|tag| tag[:PropagateAtLaunch] = false }
   pause_time = external_parameters.fetch(:pause_time, 'PT5M')
+  max_batch_size = external_parameters.fetch(:max_batch_size, '1')
   AutoScaling_AutoScalingGroup(:EksNodeAutoScalingGroup) {
     UpdatePolicy(:AutoScalingRollingUpdate, {
-      MaxBatchSize: '1',
+      MaxBatchSize: max_batch_size,
       MinInstancesInService: FnIf('SpotEnabled', 0, Ref('DesiredCapacity')),
       SuspendProcesses: %w(HealthCheck ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions),
       PauseTime: pause_time
@@ -243,7 +244,6 @@ CloudFormation do
     })
     Tags asg_tags
   }
-
 
   Output(:EksNodeSecurityGroup) {
     Value(Ref(:EksNodeSecurityGroup))
