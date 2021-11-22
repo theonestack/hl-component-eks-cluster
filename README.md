@@ -45,7 +45,7 @@
 
 ```
 
-### Elasticsearch Configuration
+### EKS Configuration
 ```
 cluster_name: ${EnvironmentName}-eks-cluster
 eks_version: 1.21
