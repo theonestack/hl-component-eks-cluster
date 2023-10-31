@@ -19,7 +19,7 @@ draining_lambda:
     Drainer:
       code: drainer
       handler: handler.lambda_handler
-      runtime: python3.7
+      runtime: python3.11
       timeout: 300
       role: Draining
       package_cmd: 'pip install -r requirements.txt -t .'
