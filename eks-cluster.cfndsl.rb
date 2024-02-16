@@ -282,9 +282,9 @@ CloudFormation do
   cluster_admin_role_arns = external_parameters.fetch(:cluster_admin_roles, '')
   unless cluster_admin_role_arns.empty?
     # environment_cluster_admin_roles = cluster_admin_role_arns["#{EnvironmentName}"]
-    environment_cluster_admin_roles = cluster_admin_role_arns["dev"]
+    # environment_cluster_admin_roles = cluster_admin_role_arns["dev"]
 
-    environment_cluster_admin_roles.each_with_index do |cluster_admin_arn, index|
+    environment_cluster_admin_roles.split(",").each_with_index do |cluster_admin_arn, index|
       EKS_AccessEntry("AccessEntryAdmin#{index}") {
         AccessPolicies([
           {
