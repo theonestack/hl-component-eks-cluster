@@ -137,6 +137,8 @@ CloudFormation do
     RoleArn FnGetAtt(:EksClusterRole, :Arn)
     Version eks_version unless eks_version.nil?
   }
+  
+
 
   iam = external_parameters[:iam]
   IAM_Role(:EksNodeRole) {
@@ -244,6 +246,62 @@ CloudFormation do
     })
     Tags asg_tags
   }
+  auth_type = external_parameters.fetch(:auth_type, 'STANDARD')
+  node_type = external_parameters.fetch(:node_type, 'EC2_LINUX')
+
+  #provides elmer with cluster admin access
+  EKS_AccessEntry(:AccessEntryElmerClusterAdmin) {
+    Tags ([
+      {
+        Key: 'simple key',
+        Value: 'support'
+      }
+    ])
+    AccessPolicies([
+      {
+        AccessScope: {
+			    Type:'cluster'
+			  },
+        PolicyArn: 'arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
+      }
+    ])
+    ClusterName Ref(:EksCluster)
+    KubernetesGroups ['cluster-admin']
+    PrincipalArn FnJoin('', ['arn:aws:iam::',Ref('AWS::AccountId'),':role/iamelmer/IAMElmerRole_admin'])
+    Type auth_type
+
+  }
+  # allow nodes to join the cluster, also provides access to nodes resource (console, api, k8s)
+  EKS_AccessEntry(:AccessEntryAdminNode) {
+    ClusterName Ref(:EksCluster)
+    PrincipalArn FnGetAtt(:EksNodeRole, 'Arn')
+    Type node_type
+  }
+
+  
+  cluster_admin_role_arns = external_parameters.fetch(:cluster_admin_roles, '')
+  unless cluster_admin_role_arns.empty?
+    # environment_cluster_admin_roles = cluster_admin_role_arns["#{EnvironmentName}"]
+    environment_cluster_admin_roles = cluster_admin_role_arns["dev"]
+
+    environment_cluster_admin_roles.each_with_index do |cluster_admin_arn, index|
+      EKS_AccessEntry("AccessEntryAdmin#{index}") {
+        AccessPolicies([
+          {
+            AccessScope: {
+              Type:'cluster'
+            },
+            PolicyArn: 'arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy'
+          }
+        ])
+        ClusterName Ref(:EksCluster)
+        KubernetesGroups ['cluster-admin']
+        PrincipalArn FnJoin('', ['arn:aws:iam::',Ref('AWS::AccountId'),':role/aws-reserved/sso.amazonaws.com/' ,cluster_admin_arn])
+        Type auth_type
+    
+      }
+    end
+  end
 
   Output(:EksNodeSecurityGroup) {
     Value(Ref(:EksNodeSecurityGroup))
