@@ -283,7 +283,7 @@ CloudFormation do
   external_parameters[:max_cluster_roles].times do | cluster_role|
 
   # cluster_admin_role_arns.split(",").each_with_index do |cluster_admin_arn, index|
-    EKS_AccessEntry("AccessEntryAdmin#{index}") {
+    EKS_AccessEntry("AccessEntryAdmin#{cluster_role}") {
       AccessPolicies([
         {
           AccessScope: {
