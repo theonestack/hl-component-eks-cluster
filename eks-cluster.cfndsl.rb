@@ -278,8 +278,6 @@ CloudFormation do
     Type node_type
   }
 
-  
-
   # environment_cluster_admin_roles = cluster_admin_role_arns["#{EnvironmentName}"]
   # environment_cluster_admin_roles = cluster_admin_role_arns["dev"]
   external_parameters[:max_cluster_roles].times do | cluster_role|
@@ -300,13 +298,13 @@ CloudFormation do
       PrincipalArn FnJoin('', ['arn:aws:iam::',
                                 Ref('AWS::AccountId'),':role/aws-reserved/sso.amazonaws.com/' , 
                                 FnSelect(cluster_role, 
-                                  FnFindInMap('EnvironmentName', FnSub("#{EnvironmentName}"), 'ClusterAdminRoles')
+                                  FnFindInMap('EnvironmentName', 'dev', 'ClusterAdminRoles')
                                 ), 
                               ])
       Type auth_type
   
     }
-  end
+    end
   
 
   Output(:EksNodeSecurityGroup) {
