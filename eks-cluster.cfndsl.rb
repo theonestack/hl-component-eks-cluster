@@ -295,12 +295,7 @@ CloudFormation do
       ClusterName Ref(:EksCluster)
       KubernetesGroups ['cluster-admin']
 
-      PrincipalArn FnJoin('', ['arn:aws:iam::',
-                                Ref('AWS::AccountId'),':role/aws-reserved/sso.amazonaws.com/' , 
-                                FnSelect(cluster_role, 
-                                  FnFindInMap('EnvironmentName', 'dev', 'ClusterAdminRoles')
-                                ), 
-                              ])
+      PrincipalArn FnJoin('', Ref('ClusterRoleAdmin#{cluster_role}'))
       Type auth_type
   
     }
