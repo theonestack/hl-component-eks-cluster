@@ -295,7 +295,7 @@ CloudFormation do
       ClusterName Ref(:EksCluster)
       KubernetesGroups ['cluster-admin']
 
-      PrincipalArn FnJoin('', Ref("ClusterRoleAdmin#{cluster_role}"))
+      PrincipalArn Ref("ClusterRoleAdmin#{cluster_role}")
       Type auth_type
   
     }
