@@ -278,8 +278,6 @@ CloudFormation do
     Type node_type
   }
 
-  # environment_cluster_admin_roles = cluster_admin_role_arns["#{EnvironmentName}"]
-  # environment_cluster_admin_roles = cluster_admin_role_arns["dev"]
   external_parameters[:max_cluster_roles].times do | cluster_role|
 
   # cluster_admin_role_arns.split(",").each_with_index do |cluster_admin_arn, index|
