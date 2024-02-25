@@ -278,7 +278,9 @@ CloudFormation do
     Type node_type
   }
 
-  external_parameters[:max_cluster_roles].times do | cluster_role|
+
+  max_cluster_roles = external_parameters.fetch(:max_cluster_roles, 0)
+  max_cluster_roles.times do | cluster_role|
 
   # cluster_admin_role_arns.split(",").each_with_index do |cluster_admin_arn, index|
     EKS_AccessEntry("AccessEntryAdmin#{cluster_role}") {

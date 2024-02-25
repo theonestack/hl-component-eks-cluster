@@ -1,0 +1,8 @@
+name: cftest
+
+on: [push, pull_request]
+
+jobs:
+  rspec:
+    uses: theonestack/shared-workflows/.github/workflows/rspec.yaml@main
+    secrets: inherit
